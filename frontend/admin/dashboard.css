@@ -1,0 +1,380 @@
+:root {
+    --bg: #f3efe7;
+    --panel: #fffdf8;
+    --panel-strong: #f6efe3;
+    --text: #1f2933;
+    --muted: #5d6b79;
+    --border: #ded5c7;
+    --accent: #0f766e;
+    --accent-dark: #0b5b55;
+    --accent-soft: #d7efec;
+    --danger: #b42318;
+    --danger-dark: #8f1d13;
+    --shadow: 0 18px 40px rgba(31, 41, 51, 0.08);
+    --radius: 18px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 32px;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    color: var(--text);
+    background:
+        radial-gradient(circle at top left, #fdf6ea 0, transparent 28%),
+        radial-gradient(circle at top right, #dcefea 0, transparent 24%),
+        var(--bg);
+}
+
+input,
+select,
+button {
+    font: inherit;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 24px;
+    margin-bottom: 24px;
+}
+
+.eyebrow {
+    margin: 0 0 8px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+}
+
+h1 {
+    margin: 0;
+    font-size: clamp(2rem, 3vw, 3rem);
+    line-height: 1.05;
+}
+
+.subtitle {
+    margin: 10px 0 0;
+    max-width: 760px;
+    color: var(--muted);
+}
+
+.hero-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+    margin-bottom: 24px;
+}
+
+.hero-card,
+.panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+
+.hero-card {
+    padding: 22px;
+}
+
+.hero-card h2 {
+    margin: 0 0 8px;
+    font-size: 1.5rem;
+}
+
+.hero-card p {
+    margin: 0;
+    color: var(--muted);
+}
+
+.hero-label {
+    margin: 0 0 10px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.section-stack {
+    display: grid;
+    gap: 22px;
+}
+
+.section-band {
+    padding: 24px;
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    background: rgba(255, 253, 248, 0.82);
+    box-shadow: var(--shadow);
+}
+
+.section-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 18px;
+}
+
+.section-head h2 {
+    margin: 0;
+    font-size: 1.6rem;
+}
+
+.panel {
+    grid-column: span 4;
+    padding: 22px;
+}
+
+.panel-wide {
+    grid-column: span 6;
+}
+
+.panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.panel h3 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.helper-text {
+    margin: 0 0 14px;
+    color: var(--muted);
+}
+
+.form-grid {
+    display: grid;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.two-col {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.three-col {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.compact {
+    align-items: center;
+}
+
+input,
+select {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: #fff;
+    color: var(--text);
+}
+
+input:focus,
+select:focus {
+    outline: 2px solid rgba(15, 118, 110, 0.16);
+    border-color: var(--accent);
+}
+
+button {
+    border: none;
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-weight: 700;
+    cursor: pointer;
+    background: var(--accent);
+    color: #fff;
+}
+
+button:hover {
+    background: var(--accent-dark);
+}
+
+.secondary-button {
+    background: var(--accent-soft);
+    color: var(--accent-dark);
+}
+
+.secondary-button:hover {
+    background: #c7e4df;
+}
+
+.ghost-button {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+}
+
+.ghost-button:hover {
+    background: #f4efe7;
+}
+
+.danger-button {
+    background: var(--danger);
+}
+
+.danger-button:hover {
+    background: var(--danger-dark);
+}
+
+.inline-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.inline-actions input {
+    max-width: 220px;
+}
+
+.result-box {
+    min-height: 24px;
+    color: var(--muted);
+}
+
+.error-text {
+    color: var(--danger);
+    font-weight: 700;
+}
+
+.card-list,
+.stats-grid {
+    display: grid;
+    gap: 12px;
+}
+
+.list-card,
+.stat-card {
+    display: grid;
+    gap: 4px;
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--panel-strong);
+}
+
+.list-card span,
+.schedule-card span,
+.stat-card span {
+    color: var(--muted);
+}
+
+.stats-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.table-shell {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: #fff;
+}
+
+.roster-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 760px;
+}
+
+.roster-table th,
+.roster-table td {
+    padding: 14px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+}
+
+.roster-table thead {
+    background: var(--panel-strong);
+}
+
+.roster-table th {
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.roster-table tbody tr:hover {
+    background: #faf6ee;
+}
+
+.empty-cell {
+    color: var(--muted);
+}
+
+.stat-card strong {
+    font-size: 1.4rem;
+}
+
+.code-output {
+    margin: 0;
+    padding: 16px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: #172026;
+    color: #e5eef5;
+    overflow: auto;
+    min-height: 140px;
+}
+
+@media (max-width: 1100px) {
+    .hero-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .section-head {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .panel,
+    .panel-wide {
+        grid-column: span 12;
+    }
+}
+
+@media (max-width: 760px) {
+    body {
+        padding: 18px;
+    }
+
+    .page-header {
+        flex-direction: column;
+    }
+
+    .two-col,
+    .three-col,
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .inline-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .inline-actions input {
+        max-width: none;
+    }
+}

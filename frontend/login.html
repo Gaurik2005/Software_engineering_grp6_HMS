@@ -1,47 +1,66 @@
-<h1>Hospital Management System</h1>
+<!DOCTYPE html>
+<html>
+<head>
+<title>Login</title>
+<link rel="stylesheet" href="login.css">
+</head>
 
-<h3>Login</h3>
+<body>
 
-<select id="role">
-<option value="patient">Patient</option>
-<option value="doctor">Doctor</option>
-<option value="nurse">Nurse</option>
-<option value="headnurse">Head Nurse</option>
-<option value="admin">Admin</option>
-</select>
+<div class="login-container">
+    <h2>Login</h2>
 
-<br><br>
+    <input id="email" placeholder="Email"><br>
+    <input id="password" type="password" placeholder="Password"><br>
 
-<input id="id" placeholder="User ID">
-
-<br><br>
-
-<button onclick="login()">Login</button>
+    <button onclick="login()">Login</button>
+</div>
 
 <script>
+async function login(){
+    try {
+        const response = await fetch("http://localhost:8008/auth/login?email="+email.value+
+        "&password="+password.value,{
+            method:"POST",
+            credentials:"include"
+        });
 
-function login(){
+        const data = await response.json();
+        let role = data.role;
+        let userId = data.userId;
 
-let role=document.getElementById("role").value
+        if (userId === null || userId === undefined) {
+            const meResponse = await fetch("http://localhost:8008/auth/me", {
+                credentials: "include"
+            });
+            const me = await meResponse.json();
+            role = role ?? me.role;
+            userId = me.userId;
+        }
 
-localStorage.setItem("role",role)
-localStorage.setItem("userId",document.getElementById("id").value)
+        localStorage.setItem("role", role);
+        if (userId !== null && userId !== undefined) {
+            localStorage.setItem("userId", userId);
+        } else {
+            localStorage.removeItem("userId");
+        }
 
-if(role==="admin")
-location.href="admin/dashboard.html"
+        if(role==="PATIENT")
+            location.href="/patient/dashboard.html"
 
-if(role==="patient")
-location.href="patient/dashboard.html"
+        if(role==="DOCTOR")
+            location.href="/doctor/dashboard.html"
 
-if(role==="doctor")
-location.href="doctor/dashboard.html"
+        if(role==="HEAD_NURSE" || role==="NURSE")
+            location.href="/nurse/roster.html"
 
-if(role==="nurse")
-location.href="nurse/roster.html"
-
-if(role==="headnurse")
-location.href="nurse/assign.html"
-
+        if(role==="ADMIN")
+            location.href="/admin/dashboard.html"
+    } catch (err) {
+        alert("Login failed");
+    }
 }
-
 </script>
+
+</body>
+</html>

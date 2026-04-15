@@ -1,20 +1,53 @@
+<!DOCTYPE html>
+<html>
+<body>
 <h2>Head Nurse Assignment</h2>
 
+<p>Assign a nurse to a doctor</p>
 Nurse ID <input id="nid"><br>
 Doctor ID <input id="did"><br>
+<button onclick="assignDoctor()">Assign Doctor</button>
 
-<button onclick="assign()">Assign</button>
+<h3>Allocate Weekly Duty</h3>
+Nurse ID <input id="dutyNurseId"><br>
+Date <input id="dutyDate" type="date"><br>
+Start <input id="dutyStart" type="time"><br>
+End <input id="dutyEnd" type="time"><br>
+Ward/Room <input id="wardOrRoom"><br>
+Notes <input id="dutyNotes"><br>
+<button onclick="assignDuty()">Assign Duty</button>
+
+<pre id="out"></pre>
 
 <script>
-
-function assign(){
-
-fetch("http://localhost:8008/nurses/assign?nurseId="+
-nid.value+"&doctorId="+did.value,
-{method:"POST"})
-.then(r=>r.json())
-.then(d=>alert(JSON.stringify(d)))
-
+if(localStorage.getItem("role") !== "HEAD_NURSE"){
+alert("Unauthorized");
+location.href = "/login.html";
 }
 
+function assignDoctor(){
+fetch(`http://localhost:8008/nurses/assign?nurseId=${nid.value}&doctorId=${did.value}`,{
+method:"PUT",
+credentials:"include"
+})
+.then(r=>r.json())
+.then(d=>{
+document.getElementById("out").innerText = JSON.stringify(d, null, 2);
+alert("Doctor assigned");
+});
+}
+
+function assignDuty(){
+fetch(`http://localhost:8008/nurses/duties/assign?nurseId=${dutyNurseId.value}&dutyDate=${dutyDate.value}&shiftStart=${dutyStart.value}&shiftEnd=${dutyEnd.value}&wardOrRoom=${encodeURIComponent(wardOrRoom.value)}&notes=${encodeURIComponent(dutyNotes.value)}`,{
+method:"POST",
+credentials:"include"
+})
+.then(r=>r.json())
+.then(d=>{
+document.getElementById("out").innerText = JSON.stringify(d, null, 2);
+alert("Duty assigned");
+});
+}
 </script>
+</body>
+</html>

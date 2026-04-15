@@ -1,27 +1,47 @@
+<!DOCTYPE html>
+<html>
+<body>
 <h2>Book Appointment</h2>
 
-Patient ID <input id="pid"><br>
+<p>The patient ID is taken from your login session.</p>
 Doctor ID <input id="did"><br>
-
-Start <input id="start"><br>
-End <input id="end"><br>
-
-<button onclick="book()">Book</button>
+Date <input id="date" type="date"><br>
+<button onclick="loadSlots()">Load Free Slots</button>
+<div id="slots"></div>
 
 <script>
+const patientId = localStorage.getItem("userId");
+let selectedStart = "";
+let selectedEnd = "";
 
-function book(){
-
-let url="http://localhost:8008/appointments/book?"+
-"patientId="+pid.value+
-"&doctorId="+did.value+
-"&start="+start.value+
-"&end="+end.value;
-
-fetch(url,{method:"POST"})
+function loadSlots(){
+fetch(`http://localhost:8008/appointments/slots?doctorId=${did.value}&date=${date.value}&slotMinutes=30`)
 .then(r=>r.json())
-.then(d=>alert(JSON.stringify(d)))
-
+.then(data=>{
+document.getElementById("slots").innerHTML = data.map(slot => `
+<button onclick="selectSlot('${slot.start}','${slot.end}')">
+${slot.start.replace("T"," ")} - ${slot.end.split("T")[1]}
+</button>
+`).join(" ");
+});
 }
 
+function selectSlot(start, end){
+selectedStart = start;
+selectedEnd = end;
+alert(`Selected ${start}`);
+}
+
+function book(){
+fetch(`http://localhost:8008/appointments/book?patientId=${patientId}&doctorId=${did.value}&start=${selectedStart}&end=${selectedEnd}`,{
+method:"POST",
+credentials:"include"
+})
+.then(r=>r.json())
+.then(d=>alert(JSON.stringify(d)));
+}
 </script>
+
+<button onclick="book()">Book</button>
+</body>
+</html>

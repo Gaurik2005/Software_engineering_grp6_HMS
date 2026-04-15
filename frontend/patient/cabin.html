@@ -1,26 +1,38 @@
+<!DOCTYPE html>
+<html>
+<body>
 <h2>Book Cabin</h2>
 
-Patient ID <input id="pid"><br>
-Cabin ID <input id="cid"><br>
-Start Date <input id="s"><br>
-End Date <input id="e"><br>
-
-<button onclick="bookCabin()">Book</button>
+<p>The patient ID is taken from your login session.</p>
+Start Date <input id="s" type="date"><br>
+End Date <input id="e" type="date"><br>
+<button onclick="loadCabins()">Check Available Cabins</button>
+<div id="cabins"></div>
 
 <script>
+const patientId = localStorage.getItem("userId");
 
-function bookCabin(){
-
-let url="http://localhost:8008/cabins/book?"+
-"patientId="+pid.value+
-"&cabinId="+cid.value+
-"&start="+s.value+
-"&end="+e.value;
-
-fetch(url,{method:"POST"})
+function loadCabins(){
+fetch(`http://localhost:8008/cabins/available?start=${s.value}&end=${e.value}`)
 .then(r=>r.json())
-.then(d=>alert(JSON.stringify(d)))
-
+.then(data=>{
+document.getElementById("cabins").innerHTML = data.map(cabin => `
+<div>
+Cabin ${cabin.cabinId} | Rate: ${cabin.dailyRate || 3000}
+<button onclick="bookCabin(${cabin.cabinId})">Book</button>
+</div>
+`).join("");
+});
 }
 
+function bookCabin(cabinId){
+fetch(`http://localhost:8008/cabins/book?patientId=${patientId}&cabinId=${cabinId}&start=${s.value}&end=${e.value}`,{
+method:"POST",
+credentials:"include"
+})
+.then(r=>r.json())
+.then(d=>alert(JSON.stringify(d)));
+}
 </script>
+</body>
+</html>

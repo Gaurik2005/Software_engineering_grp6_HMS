@@ -1,5 +1,8 @@
 <h2>Admin Report</h2>
 
+Start Date <input id="startDate" type="date"><br>
+End Date <input id="endDate" type="date"><br>
+
 <button onclick="load()">Load Report</button>
 
 <pre id="out"></pre>
@@ -7,8 +10,13 @@
 <script>
 
 function load(){
+const startDate = document.getElementById("startDate").value;
+const endDate = document.getElementById("endDate").value;
+const url = startDate && endDate
+? `http://localhost:8008/admin/report/range?startDate=${startDate}&endDate=${endDate}`
+: "http://localhost:8008/admin/report";
 
-fetch("http://localhost:8008/admin/report")
+fetch(url)
 .then(r=>r.json())
 .then(data=>{
 out.innerText=JSON.stringify(data,null,2)

@@ -1,22 +1,261 @@
-<h2>Doctor Dashboard</h2>
-
-<button onclick="loadRoster()">View My Roster</button>
-
-<pre id="out"></pre>
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Doctor Dashboard</title>
+<link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
 <script>
+const role = localStorage.getItem("role");
+let doctorId = localStorage.getItem("userId");
 
-function loadRoster(){
-
-let id=localStorage.getItem("userId")
-
-fetch("http://localhost:8008/roster?doctorId="+id)
-.then(r=>r.json())
-.then(data=>{
-document.getElementById("out").innerText=
-JSON.stringify(data,null,2)
-})
-
+if (role !== "DOCTOR") {
+    alert("Unauthorized");
+    location.href = "/login.html";
 }
 
+function logout() {
+    localStorage.removeItem("role");
+    localStorage.removeItem("userId");
+
+    fetch("http://localhost:8008/auth/logout", {
+        method: "POST",
+        credentials: "include"
+    }).then(() => location.href = "/login.html");
+}
 </script>
+
+<header class="page-header">
+    <div>
+        <p class="eyebrow">Gray Hospital</p>
+        <h1>Doctor Dashboard</h1>
+        <p class="subtitle">View your weekly timetable, your assigned nurse, and record diagnosis and prescription after appointments.</p>
+    </div>
+    <button class="ghost-button" onclick="logout()">Logout</button>
+</header>
+
+<section class="hero-grid">
+    <article class="hero-card">
+        <p class="hero-label">Consultation Hours</p>
+        <h2>09:00 to 17:00</h2>
+        <p>Appointments are managed in fixed 1-hour consultation slots.</p>
+    </article>
+    <article class="hero-card">
+        <p class="hero-label">Roster Access</p>
+        <h2>Only Your Timetable</h2>
+        <p>The roster below shows only your weekly schedule and your assigned nurse.</p>
+    </article>
+    <article class="hero-card">
+        <p class="hero-label">Medical Records</p>
+        <h2>After Consultation</h2>
+        <p>Enter diagnosis, prescription, and notes for completed appointments.</p>
+    </article>
+</section>
+
+<main class="section-stack">
+    <section class="section-band">
+        <div class="section-head">
+            <div>
+                <p class="eyebrow">Roster</p>
+                <h2>My Weekly Timetable</h2>
+            </div>
+        </div>
+        <div class="inline-actions">
+            <input id="weekStart" type="date">
+            <button class="secondary-button" onclick="loadWeeklyRoster()">Load Week</button>
+        </div>
+        <div id="nurseSummary" class="result-box"></div>
+        <div class="table-shell">
+            <table class="roster-table">
+                <thead>
+                    <tr>
+                        <th>Week</th>
+                        <th>Date</th>
+                        <th>Doctor</th>
+                        <th>Room</th>
+                        <th>Hours</th>
+                        <th>Assigned Nurse</th>
+                    </tr>
+                </thead>
+                <tbody id="doctorRosterBody">
+                    <tr>
+                        <td colspan="6" class="empty-cell">Select a week to load your timetable.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="section-band">
+        <div class="section-head">
+            <div>
+                <p class="eyebrow">Records</p>
+                <h2>Record Diagnosis and Prescription</h2>
+            </div>
+        </div>
+        <div class="dashboard-grid">
+            <section class="panel">
+                <div class="panel-header">
+                    <div>
+                        <p class="eyebrow">Medical Record</p>
+                        <h3>Save Record</h3>
+                    </div>
+                </div>
+                <div class="form-grid one-col">
+                    <input id="appointmentId" placeholder="Appointment ID">
+                    <textarea id="diagnosis" placeholder="Diagnosis"></textarea>
+                    <textarea id="prescription" placeholder="Prescription"></textarea>
+                    <textarea id="notes" placeholder="Notes"></textarea>
+                </div>
+                <button onclick="saveMedicalRecord()">Save Medical Record</button>
+            </section>
+
+            <section class="panel panel-wide">
+                <div class="panel-header">
+                    <div>
+                        <p class="eyebrow">Medical Record</p>
+                        <h3>Saved Output</h3>
+                    </div>
+                </div>
+                <pre id="recordOutput" class="code-output">No medical record submitted yet.</pre>
+            </section>
+        </div>
+    </section>
+</main>
+
+<script>
+async function loadWeeklyRoster() {
+    if (!weekStart.value) {
+        doctorRosterBody.innerHTML = `<tr><td colspan="6" class="empty-cell">Select a week to load your timetable.</td></tr>`;
+        return;
+    }
+
+    await ensureDoctorId();
+
+    if (!doctorId) {
+        doctorRosterBody.innerHTML = `<tr><td colspan="6" class="empty-cell">Doctor session not found. Log in again.</td></tr>`;
+        return;
+    }
+
+    try {
+        const response = await fetch(`http://localhost:8008/roster/week-view/doctor?startDate=${weekStart.value}&doctorId=${doctorId}`, {
+            credentials: "include"
+        });
+
+        if (response.ok) {
+            const rows = await response.json();
+            renderDoctorRoster(rows);
+            return;
+        }
+
+        if (response.status !== 404) {
+            throw new Error("Failed to load doctor week-view roster");
+        }
+    } catch (error) {
+        console.error(error);
+    }
+
+    const [rosterResponse, nurseResponse] = await Promise.all([
+        fetch(`http://localhost:8008/roster/week?startDate=${weekStart.value}`),
+        fetch("http://localhost:8008/nurses/all")
+    ]);
+
+    const rosterRows = await rosterResponse.json();
+    const nurses = await nurseResponse.json();
+
+    const myNurse = nurses.find(nurse => nurse.doctor && String(nurse.doctor.doctorId) === String(doctorId));
+    const mine = rosterRows
+        .filter(row => String(row.doctor.doctorId) === String(doctorId))
+        .map(row => ({
+            weekStart: weekStart.value,
+            weekEnd: addSixDays(weekStart.value),
+            date: row.date,
+            doctorName: row.doctor.name,
+            roomId: row.roomId,
+            startTime: row.startTime,
+            endTime: row.endTime,
+            nurseId: myNurse ? myNurse.nurseId : null,
+            nurseName: myNurse ? myNurse.name : "Not Assigned"
+        }));
+
+    renderDoctorRoster(mine);
+}
+
+async function ensureDoctorId() {
+    if (doctorId) {
+        return;
+    }
+
+    try {
+        const response = await fetch("http://localhost:8008/auth/me", {
+            credentials: "include"
+        });
+
+        if (!response.ok) {
+            return;
+        }
+
+        const data = await response.json();
+        if (data && data.userId) {
+            doctorId = String(data.userId);
+            localStorage.setItem("userId", doctorId);
+        }
+    } catch (error) {
+        console.error(error);
+    }
+}
+
+function renderDoctorRoster(rows) {
+    if (!rows.length) {
+        nurseSummary.innerHTML = "<p>No timetable entries found for that week.</p>";
+        doctorRosterBody.innerHTML = `<tr><td colspan="6" class="empty-cell">No timetable entries found for that week.</td></tr>`;
+        return;
+    }
+
+    const nurseText = rows[0].nurseName || "Not Assigned";
+    nurseSummary.innerHTML = `<p>Assigned Nurse: <strong>${nurseText}</strong></p>`;
+
+    doctorRosterBody.innerHTML = rows.map(row => `
+        <tr>
+            <td>${row.weekStart} to ${row.weekEnd}</td>
+            <td>${row.date}</td>
+            <td>Dr. ${row.doctorName}</td>
+            <td>${row.roomId}</td>
+            <td>${row.startTime} - ${row.endTime}</td>
+            <td>${row.nurseName}${row.nurseId ? ` (ID ${row.nurseId})` : ""}</td>
+        </tr>
+    `).join("");
+}
+
+function addSixDays(startDate) {
+    const date = new Date(`${startDate}T00:00:00`);
+    date.setDate(date.getDate() + 6);
+    return date.toISOString().slice(0, 10);
+}
+
+function saveMedicalRecord() {
+    fetch(`http://localhost:8008/appointments/${appointmentId.value}/medical-record`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+            diagnosis: diagnosis.value,
+            prescription: prescription.value,
+            notes: notes.value
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        recordOutput.innerText = JSON.stringify(data, null, 2);
+        alert("Medical record saved");
+    })
+    .catch(err => {
+        alert("Failed to save medical record");
+        console.log(err);
+    });
+}
+</script>
+</body>
+</html>

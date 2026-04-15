@@ -5,6 +5,8 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 @Entity
 @Table(name = "nurses")
 @Data
@@ -22,10 +24,17 @@ public class Nurse {
     private String phone;
 
     private BigDecimal salary;
+    
+    @Column(name = "password")
+    private String password;
 
+    @Column(name = "role")
     private String role;
 
-    @ManyToOne
+    
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name="doctor_id")
+    @JsonIgnore
     private Doctor doctor;
 }

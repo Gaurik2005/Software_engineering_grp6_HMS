@@ -7,22 +7,22 @@ import java.time.LocalDate;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/admin")
-public class AdminController {
+@RequestMapping("/reports")
+public class ReportController {
 
     private final AdminReportService adminReportService;
 
-    public AdminController(AdminReportService adminReportService){
+    public ReportController(AdminReportService adminReportService){
         this.adminReportService = adminReportService;
     }
 
-    @GetMapping("/report")
-    public Map<String,Object> getReport(){
+    @GetMapping("/summary")
+    public Map<String,Object> summary(){
         return adminReportService.generateReport();
     }
 
-    @GetMapping("/report/range")
-    public Map<String, Object> getReportForRange(
+    @GetMapping("/summary/range")
+    public Map<String, Object> summaryForRange(
             @RequestParam String startDate,
             @RequestParam String endDate){
         return adminReportService.generateReport(LocalDate.parse(startDate), LocalDate.parse(endDate));

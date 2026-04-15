@@ -1,30 +1,262 @@
-<h2>Nurse Roster</h2>
-
-<button onclick="load()">Load My Doctor Roster</button>
-
-<pre id="out"></pre>
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nurse Dashboard</title>
+<link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
 <script>
+const role = localStorage.getItem("role");
+const nurseId = localStorage.getItem("userId");
+const isHeadNurse = role === "HEAD_NURSE";
 
-function load(){
-
-let nurseId=localStorage.getItem("userId")
-
-fetch("http://localhost:8008/nurses/"+nurseId)
-.then(r=>r.json())
-.then(nurse=>{
-
-let doctorId=nurse.doctor.doctorId
-
-fetch("http://localhost:8008/roster?doctorId="+doctorId)
-.then(r=>r.json())
-.then(data=>{
-document.getElementById("out").innerText=
-JSON.stringify(data,null,2)
-})
-
-})
-
+if (role !== "NURSE" && role !== "HEAD_NURSE") {
+    alert("Unauthorized");
+    location.href = "/login.html";
 }
 
+function logout() {
+    localStorage.removeItem("role");
+    localStorage.removeItem("userId");
+    fetch("http://localhost:8008/auth/logout", {
+        method: "POST",
+        credentials: "include"
+    }).then(() => location.href = "/login.html");
+}
 </script>
+
+<header class="page-header">
+    <div>
+        <p class="eyebrow">Gray Hospital</p>
+        <h1>Nurse Dashboard</h1>
+        <p class="subtitle">View weekly duties, track assigned work, and if you are the head nurse, assign nurses to doctors and allocate weekly duty.</p>
+    </div>
+    <button class="ghost-button" onclick="logout()">Logout</button>
+</header>
+
+<section class="hero-grid">
+    <article class="hero-card">
+        <p class="hero-label">Role</p>
+        <h2 id="roleTitle">Nurse</h2>
+        <p id="roleSummary">Your dashboard shows only your weekly duties.</p>
+    </article>
+    <article class="hero-card">
+        <p class="hero-label">Duty Window</p>
+        <h2>Weekly View</h2>
+        <p>Load a week to review the assigned date, time, room, and notes for your duties.</p>
+    </article>
+    <article class="hero-card" id="headHeroCard">
+        <p class="hero-label">Head Nurse</p>
+        <h2>Assignment Control</h2>
+        <p>Assign nurses to doctors and allocate weekly duties from the same dashboard.</p>
+    </article>
+</section>
+
+<main class="section-stack">
+    <section class="section-band">
+        <div class="section-head">
+            <div>
+                <p class="eyebrow">Duties</p>
+                <h2>My Weekly Duties</h2>
+            </div>
+        </div>
+        <div class="inline-actions">
+            <input id="weekStart" type="date">
+            <button class="secondary-button" onclick="loadMyDuties()">Load Week</button>
+        </div>
+        <div class="table-shell">
+            <table class="duty-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Start</th>
+                        <th>End</th>
+                        <th>Ward / Room</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody id="dutyTableBody">
+                    <tr>
+                        <td colspan="5" class="empty-cell">Select a week to load your duties.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="section-band" id="headNurseSection">
+        <div class="section-head">
+            <div>
+                <p class="eyebrow">Head Nurse Tools</p>
+                <h2>Assignment and Allocation</h2>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <section class="panel">
+                <div class="panel-header">
+                    <div>
+                        <p class="eyebrow">Assignments</p>
+                        <h3>Assign Nurse to Doctor</h3>
+                    </div>
+                </div>
+                <div class="form-grid two-col">
+                    <input id="assignNurseId" placeholder="Nurse ID">
+                    <input id="assignDoctorId" placeholder="Doctor ID">
+                </div>
+                <button onclick="assignDoctor()">Assign</button>
+                <div id="assignResult" class="result-box"></div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-header">
+                    <div>
+                        <p class="eyebrow">Duties</p>
+                        <h3>Allocate Weekly Duty</h3>
+                    </div>
+                </div>
+                <div class="form-grid two-col">
+                    <input id="dutyNurseId" placeholder="Nurse ID">
+                    <input id="dutyDate" type="date">
+                    <input id="dutyStart" type="time">
+                    <input id="dutyEnd" type="time">
+                    <input id="wardOrRoom" placeholder="Ward / Room">
+                    <input id="dutyNotes" placeholder="Notes">
+                </div>
+                <button onclick="assignDuty()">Allocate Duty</button>
+                <div id="dutyResult" class="result-box"></div>
+            </section>
+
+            <section class="panel panel-wide">
+                <div class="panel-header">
+                    <div>
+                        <p class="eyebrow">Reference</p>
+                        <h3>Nurses and Doctors</h3>
+                    </div>
+                </div>
+                <div class="two-column-lists">
+                    <div>
+                        <div class="list-head">
+                            <strong>Nurses</strong>
+                            <button class="secondary-button small-button" onclick="loadNurses()">Refresh</button>
+                        </div>
+                        <div id="nurseList" class="card-list"></div>
+                    </div>
+                    <div>
+                        <div class="list-head">
+                            <strong>Doctors</strong>
+                            <button class="secondary-button small-button" onclick="loadDoctors()">Refresh</button>
+                        </div>
+                        <div id="doctorList" class="card-list"></div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </section>
+</main>
+
+<script>
+roleTitle.innerText = isHeadNurse ? "Head Nurse" : "Nurse";
+roleSummary.innerText = isHeadNurse
+    ? "You can review your duties and manage other nurses."
+    : "You can review only your own weekly duties.";
+
+if (!isHeadNurse) {
+    headNurseSection.style.display = "none";
+    headHeroCard.style.display = "none";
+}
+
+function loadMyDuties() {
+    if (!weekStart.value) {
+        dutyTableBody.innerHTML = `<tr><td colspan="5" class="empty-cell">Select a week to load your duties.</td></tr>`;
+        return;
+    }
+
+    fetch(`http://localhost:8008/nurses/${nurseId}/duties/week?startDate=${weekStart.value}`)
+    .then(r => r.json())
+    .then(data => {
+        if (!data.length) {
+            dutyTableBody.innerHTML = `<tr><td colspan="5" class="empty-cell">No duties found for that week.</td></tr>`;
+            return;
+        }
+
+        dutyTableBody.innerHTML = data.map(row => `
+            <tr>
+                <td>${row.dutyDate}</td>
+                <td>${row.shiftStart}</td>
+                <td>${row.shiftEnd}</td>
+                <td>${row.wardOrRoom || "-"}</td>
+                <td>${row.notes || "-"}</td>
+            </tr>
+        `).join("");
+    });
+}
+
+function assignDoctor() {
+    fetch(`http://localhost:8008/nurses/assign?nurseId=${assignNurseId.value}&doctorId=${assignDoctorId.value}`, {
+        method: "PUT",
+        credentials: "include"
+    })
+    .then(r => r.json())
+    .then(data => {
+        assignResult.innerHTML = `<p>Assigned ${data.name} to doctor ID ${assignDoctorId.value}.</p>`;
+        loadNurses();
+    })
+    .catch(() => {
+        assignResult.innerHTML = `<p class="error-text">Assignment failed.</p>`;
+    });
+}
+
+function assignDuty() {
+    fetch(`http://localhost:8008/nurses/duties/assign?nurseId=${dutyNurseId.value}&dutyDate=${dutyDate.value}&shiftStart=${dutyStart.value}&shiftEnd=${dutyEnd.value}&wardOrRoom=${encodeURIComponent(wardOrRoom.value)}&notes=${encodeURIComponent(dutyNotes.value)}`, {
+        method: "POST",
+        credentials: "include"
+    })
+    .then(r => r.json())
+    .then(data => {
+        dutyResult.innerHTML = `<p>Duty allocated for nurse ID ${data.nurse.nurseId} on ${data.dutyDate}.</p>`;
+    })
+    .catch(() => {
+        dutyResult.innerHTML = `<p class="error-text">Duty allocation failed.</p>`;
+    });
+}
+
+function loadNurses() {
+    fetch("http://localhost:8008/nurses/all")
+    .then(r => r.json())
+    .then(data => {
+        nurseList.innerHTML = data.map(nurse => `
+            <article class="list-card">
+                <strong>${nurse.name}</strong>
+                <span>ID ${nurse.nurseId}</span>
+                <span>${nurse.role || "NURSE"}</span>
+                <span>Salary: ${nurse.salary || "Not Set"}</span>
+            </article>
+        `).join("");
+    });
+}
+
+function loadDoctors() {
+    fetch("http://localhost:8008/doctors/all")
+    .then(r => r.json())
+    .then(data => {
+        doctorList.innerHTML = data.map(doctor => `
+            <article class="list-card">
+                <strong>${doctor.name}</strong>
+                <span>ID ${doctor.doctorId}</span>
+                <span>${doctor.doctorType}</span>
+                <span>${doctor.expertise || "No expertise listed"}</span>
+            </article>
+        `).join("");
+    });
+}
+
+if (isHeadNurse) {
+    loadNurses();
+    loadDoctors();
+}
+</script>
+</body>
+</html>

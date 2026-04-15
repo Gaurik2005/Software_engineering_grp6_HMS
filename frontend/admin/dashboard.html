@@ -1,5 +1,540 @@
-<h2>Admin Dashboard</h2>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard</title>
+<link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+<script>
+const role = localStorage.getItem("role");
 
-<a href="doctors.html">Manage Doctors</a><br><br>
-<a href="roster.html">Manage Roster</a><br><br>
-<a href="report.html">View Report</a>
+if (role !== "ADMIN") {
+    alert("Unauthorized");
+    location.href = "/login.html";
+}
+
+function logout() {
+    localStorage.removeItem("role");
+    localStorage.removeItem("userId");
+
+    fetch("http://localhost:8008/auth/logout", {
+        method: "POST",
+        credentials: "include"
+    }).then(() => location.href = "/login.html");
+}
+</script>
+
+<header class="page-header">
+    <div>
+        <p class="eyebrow">Gray Hospital</p>
+        <h1>Admin Dashboard</h1>
+        <p class="subtitle">Manage staff, roster planning, payroll, and reporting from one place.</p>
+    </div>
+    <button class="ghost-button" onclick="logout()">Logout</button>
+</header>
+
+<section class="hero-grid">
+    <article class="hero-card">
+        <p class="hero-label">Consultation Shift</p>
+        <h2>09:00 to 17:00</h2>
+        <p>Doctor rosters use fixed 1-hour patient slots.</p>
+    </article>
+    <article class="hero-card">
+        <p class="hero-label">Roster Rule</p>
+        <h2>One Doctor / One Room</h2>
+        <p>The backend rejects duplicate doctor-day or room-day assignments.</p>
+    </article>
+    <article class="hero-card">
+        <p class="hero-label">Payments</p>
+        <h2>Tracked in Backend</h2>
+        <p>Appointments, cabins, and payslips feed admin reporting.</p>
+    </article>
+</section>
+
+<main class="section-stack">
+    <section class="section-band">
+        <div class="section-head">
+            <div>
+                <p class="eyebrow">Doctors</p>
+                <h2>Doctor Section</h2>
+            </div>
+            <button class="secondary-button" onclick="loadDoctors()">Refresh Doctors</button>
+        </div>
+        <div class="dashboard-grid">
+            <section class="panel">
+                <div class="panel-header">
+                    <div>
+                        <p class="eyebrow">Doctors</p>
+                        <h3>Add Doctor</h3>
+                    </div>
+                </div>
+                <div class="form-grid two-col">
+                    <input id="dname" placeholder="Full Name">
+                    <input id="demail" placeholder="Email">
+                    <input id="dphone" placeholder="Phone">
+                    <input id="dqual" placeholder="Qualification">
+                    <input id="dexp" placeholder="Expertise">
+                    <select id="dtype">
+                        <option value="REGULAR">REGULAR</option>
+                        <option value="VISITING">VISITING</option>
+                    </select>
+                    <input id="dbasic" placeholder="Basic Pay for Regular Doctor">
+                    <input id="dpass" placeholder="Password">
+                </div>
+                <button onclick="addDoctor()">Save Doctor</button>
+                <div id="doctorCreateResult" class="result-box"></div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-header">
+                    <div>
+                        <p class="eyebrow">Doctors</p>
+                        <h3>Doctor Directory</h3>
+                    </div>
+                </div>
+                <div id="adminDoctorList" class="card-list"></div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-header">
+                    <div>
+                        <p class="eyebrow">Doctors</p>
+                        <h3>Pay and Removal</h3>
+                    </div>
+                </div>
+                <div class="form-grid two-col compact">
+                    <input id="updDocId" placeholder="Doctor ID">
+                    <input id="updDocPay" placeholder="New Basic Pay">
+                    <button onclick="updateDoctorPay()">Update Pay</button>
+                    <span></span>
+                    <input id="delDoctorId" placeholder="Doctor ID to Delete">
+                    <button class="danger-button" onclick="deleteDoctor()">Delete Doctor</button>
+                </div>
+            </section>
+        </div>
+    </section>
+
+    <section class="section-band">
+        <div class="section-head">
+            <div>
+                <p class="eyebrow">Nurses</p>
+                <h2>Nurse Section</h2>
+            </div>
+            <button class="secondary-button" onclick="loadNurses()">Refresh Nurses</button>
+        </div>
+        <div class="dashboard-grid">
+            <section class="panel">
+                <div class="panel-header">
+                    <div>
+                        <p class="eyebrow">Nurses</p>
+                        <h3>Add Nurse</h3>
+                    </div>
+                </div>
+                <div class="form-grid two-col">
+                    <input id="nname" placeholder="Full Name">
+                    <input id="nsalary" placeholder="Salary">
+                    <input id="nemail" placeholder="Email">
+                    <input id="nphone" placeholder="Phone">
+                    <input id="npass" placeholder="Password">
+                    <select id="nrole">
+                        <option value="NURSE">NURSE</option>
+                        <option value="HEAD">HEAD</option>
+                    </select>
+                </div>
+                <button onclick="addNurse()">Save Nurse</button>
+                <div id="nurseCreateResult" class="result-box"></div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-header">
+                    <div>
+                        <p class="eyebrow">Nurses</p>
+                        <h3>Nurse Management</h3>
+                    </div>
+                </div>
+                <div class="form-grid two-col compact">
+                    <input id="updNurseId" placeholder="Nurse ID">
+                    <input id="updNursePay" placeholder="New Salary">
+                    <button onclick="updateNursePay()">Update Salary</button>
+                    <button onclick="makeHead()">Make Head Nurse</button>
+                    <input id="headNurseId" placeholder="Head Nurse ID">
+                    <input id="delNurseId" placeholder="Nurse ID to Delete">
+                    <button class="danger-button" onclick="deleteNurse()">Delete Nurse</button>
+                    <span></span>
+                </div>
+                <div id="nurseList" class="card-list"></div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-header">
+                    <div>
+                        <p class="eyebrow">Assignments</p>
+                        <h3>Nurse to Doctor</h3>
+                    </div>
+                </div>
+                <div class="form-grid two-col">
+                    <input id="assignNurseId" placeholder="Nurse ID">
+                    <input id="assignDoctorId" placeholder="Doctor ID">
+                </div>
+                <button onclick="assignNurse()">Assign Nurse</button>
+            </section>
+        </div>
+    </section>
+
+    <section class="section-band">
+        <div class="section-head">
+            <div>
+                <p class="eyebrow">Roster</p>
+                <h2>Roster Section</h2>
+            </div>
+        </div>
+        <div class="dashboard-grid">
+            <section class="panel panel-wide">
+                <div class="panel-header">
+                    <div>
+                        <p class="eyebrow">Roster</p>
+                        <h3>Create Standard Doctor Roster</h3>
+                    </div>
+                </div>
+                <p class="helper-text">Fixed consultation window: 09:00 to 17:00.</p>
+                <div class="form-grid three-col">
+                    <input id="rDoctorId" placeholder="Doctor ID">
+                    <input id="rRoomId" placeholder="Room ID">
+                    <input id="rDate" type="date">
+                </div>
+                <button onclick="addRoster()">Create Roster</button>
+                <div id="rosterCreateResult" class="result-box"></div>
+            </section>
+
+            <section class="panel panel-wide">
+                <div class="panel-header">
+                    <div>
+                        <p class="eyebrow">Roster</p>
+                        <h3>Weekly Doctor Roster</h3>
+                    </div>
+                </div>
+                <div class="inline-actions">
+                    <input id="weeklyRosterStart" type="date">
+                    <button class="secondary-button" onclick="loadWeeklyRoster()">Load Week</button>
+                </div>
+                <div id="weeklyRosterOut" class="table-shell">
+                    <table class="roster-table">
+                        <thead>
+                            <tr>
+                                <th>Week</th>
+                                <th>Date</th>
+                                <th>Doctor</th>
+                                <th>Type</th>
+                                <th>Room</th>
+                                <th>Hours</th>
+                                <th>Nurse</th>
+                            </tr>
+                        </thead>
+                        <tbody id="weeklyRosterTableBody">
+                            <tr>
+                                <td colspan="7" class="empty-cell">Select a week to load the roster.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </section>
+
+    <section class="section-band">
+        <div class="section-head">
+            <div>
+                <p class="eyebrow">Operations</p>
+                <h2>Payroll and Reports</h2>
+            </div>
+        </div>
+        <div class="dashboard-grid">
+            <section class="panel">
+                <div class="panel-header">
+                    <div>
+                        <p class="eyebrow">Payroll</p>
+                        <h3>Doctor Payslip</h3>
+                    </div>
+                </div>
+                <div class="form-grid three-col">
+                    <input id="payDoctorId" placeholder="Doctor ID">
+                    <input id="payMonth" placeholder="Month">
+                    <input id="payYear" placeholder="Year">
+                </div>
+                <button onclick="generateDoctorPayslip()">Generate Doctor Payslip</button>
+            </section>
+
+            <section class="panel">
+                <div class="panel-header">
+                    <div>
+                        <p class="eyebrow">Payroll</p>
+                        <h3>Nurse Payslip</h3>
+                    </div>
+                </div>
+                <div class="form-grid three-col">
+                    <input id="payNurseId" placeholder="Nurse ID">
+                    <input id="payMonthNurse" placeholder="Month">
+                    <input id="payYearNurse" placeholder="Year">
+                </div>
+                <button onclick="generateNursePayslip()">Generate Nurse Payslip</button>
+            </section>
+
+            <section class="panel panel-wide">
+                <div class="panel-header">
+                    <div>
+                        <p class="eyebrow">Duties</p>
+                        <h3>Weekly Nurse Duties</h3>
+                    </div>
+                </div>
+                <div class="inline-actions">
+                    <input id="weeklyDutyStart" type="date">
+                    <button class="secondary-button" onclick="loadWeeklyDuties()">Load Week</button>
+                </div>
+                <pre id="weeklyDutyOut" class="code-output"></pre>
+            </section>
+
+            <section class="panel panel-wide">
+                <div class="panel-header">
+                    <div>
+                        <p class="eyebrow">Reports</p>
+                        <h3>Administrative Report</h3>
+                    </div>
+                </div>
+                <div class="inline-actions">
+                    <button class="secondary-button" onclick="loadReport()">Load Report</button>
+                </div>
+                <div id="report" class="stats-grid"></div>
+            </section>
+        </div>
+    </section>
+</main>
+
+<script>
+function updateDoctorPay() {
+    fetch(`http://localhost:8008/doctors/update-pay?doctorId=${updDocId.value}&newPay=${updDocPay.value}`, {
+        method: "PUT"
+    }).then(() => alert("Doctor pay updated"));
+}
+
+function deleteDoctor() {
+    fetch(`http://localhost:8008/doctors/delete?doctorId=${delDoctorId.value}`, {
+        method: "DELETE"
+    }).then(() => alert("Doctor deleted"));
+}
+
+function addDoctor() {
+    fetch("http://localhost:8008/doctors/add", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+            name: dname.value,
+            email: demail.value,
+            phone: dphone.value,
+            qualification: dqual.value,
+            expertise: dexp.value,
+            doctorType: dtype.value,
+            password: dpass.value
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        const type = (dtype.value || "").toUpperCase();
+        if (type === "REGULAR" && dbasic.value) {
+            return fetch(`http://localhost:8008/doctors/update-pay?doctorId=${data.doctorId}&newPay=${dbasic.value}`, {
+                method: "PUT",
+                credentials: "include"
+            }).then(() => {
+                doctorCreateResult.innerHTML = `<p>Saved Dr. ${data.name} with regular basic pay.</p>`;
+                loadDoctors();
+            });
+        }
+
+        doctorCreateResult.innerHTML = `<p>Saved Dr. ${data.name}.</p>`;
+        loadDoctors();
+    });
+}
+
+function loadDoctors() {
+    fetch("http://localhost:8008/doctors/all")
+    .then(r => r.json())
+    .then(data => {
+        adminDoctorList.innerHTML = data.map(d => `
+            <article class="list-card">
+                <strong>${d.name}</strong>
+                <span>ID ${d.doctorId}</span>
+                <span>${d.doctorType}</span>
+                <span>${d.expertise || "No expertise listed"}</span>
+            </article>
+        `).join("");
+    });
+}
+
+function addNurse() {
+    fetch("http://localhost:8008/nurses/add", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            name: nname.value,
+            salary: nsalary.value,
+            email: nemail.value,
+            phone: nphone.value,
+            password: npass.value,
+            role: nrole.value
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        nurseCreateResult.innerHTML = `<p>Saved nurse ${data.name}.</p>`;
+        loadNurses();
+    });
+}
+
+function updateNursePay() {
+    fetch(`http://localhost:8008/nurses/update-pay?nurseId=${updNurseId.value}&salary=${updNursePay.value}`, {
+        method: "PUT"
+    }).then(() => alert("Nurse salary updated"));
+}
+
+function deleteNurse() {
+    fetch(`http://localhost:8008/nurses/delete?nurseId=${delNurseId.value}`, {
+        method: "DELETE"
+    }).then(() => alert("Nurse deleted"));
+}
+
+function makeHead() {
+    fetch(`http://localhost:8008/nurses/make-head?nurseId=${headNurseId.value}`, {
+        method: "PUT"
+    }).then(() => alert("Head nurse assigned"));
+}
+
+function loadNurses() {
+    fetch("http://localhost:8008/nurses/all")
+    .then(r => r.json())
+    .then(data => {
+        nurseList.innerHTML = data.map(n => `
+            <article class="list-card">
+                <strong>${n.name}</strong>
+                <span>ID ${n.nurseId}</span>
+                <span>${n.role || "NURSE"}</span>
+                <span>Salary: ${n.salary || "Not set"}</span>
+            </article>
+        `).join("");
+    });
+}
+
+function assignNurse() {
+    fetch(`http://localhost:8008/nurses/assign?nurseId=${assignNurseId.value}&doctorId=${assignDoctorId.value}`, {
+        method: "PUT",
+        credentials: "include"
+    })
+    .then(r => r.json())
+    .then(() => alert("Nurse assigned to doctor"))
+    .catch(() => alert("Assignment failed"));
+}
+
+function addRoster() {
+    fetch(`http://localhost:8008/roster/add?doctorId=${rDoctorId.value}&roomId=${rRoomId.value}&date=${rDate.value}&start=09:00&end=17:00`, {
+        method: "POST"
+    })
+    .then(async r => {
+        if (!r.ok) {
+            const text = await r.text();
+            throw new Error(text);
+        }
+        return r.json();
+    })
+    .then(data => {
+        rosterCreateResult.innerHTML = `
+            <p>Roster created for Dr. ${data.doctor.name}.</p>
+            <p>${data.date} | Room ${data.roomId} | ${data.startTime} - ${data.endTime}</p>
+        `;
+        loadWeeklyRoster();
+    })
+    .catch(err => {
+        rosterCreateResult.innerHTML = `<p class="error-text">Failed to create roster.</p>`;
+        console.error(err);
+        alert("Roster creation failed. If you just changed backend code, restart the Spring Boot server once.");
+    });
+}
+
+function loadWeeklyRoster() {
+    if (!weeklyRosterStart.value) {
+        weeklyRosterTableBody.innerHTML = `<tr><td colspan="7" class="empty-cell">Select a week to load the roster.</td></tr>`;
+        return;
+    }
+
+    fetch(`http://localhost:8008/roster/week-view?startDate=${weeklyRosterStart.value}`)
+    .then(r => r.json())
+    .then(data => {
+        if (!data.length) {
+            weeklyRosterTableBody.innerHTML = `<tr><td colspan="7" class="empty-cell">No roster entries for that week.</td></tr>`;
+            return;
+        }
+
+        weeklyRosterTableBody.innerHTML = data.map(row => `
+            <tr>
+                <td>${row.weekStart} to ${row.weekEnd}</td>
+                <td>${row.date}</td>
+                <td>Dr. ${row.doctorName}</td>
+                <td>${row.doctorType}</td>
+                <td>${row.roomId}</td>
+                <td>${row.startTime} - ${row.endTime}</td>
+                <td>${row.nurseName}${row.nurseId ? ` (ID ${row.nurseId})` : ""}</td>
+            </tr>
+        `).join("");
+    });
+}
+
+function generateDoctorPayslip() {
+    fetch(`http://localhost:8008/payroll/doctor?doctorId=${payDoctorId.value}&month=${payMonth.value}&year=${payYear.value}`, {
+        method: "POST"
+    })
+    .then(r => r.json())
+    .then(data => alert(`Doctor payslip generated: ${data.amount}`));
+}
+
+function generateNursePayslip() {
+    fetch(`http://localhost:8008/payroll/nurse?nurseId=${payNurseId.value}&month=${payMonthNurse.value}&year=${payYearNurse.value}`, {
+        method: "POST"
+    })
+    .then(r => r.json())
+    .then(data => alert(`Nurse payslip generated: ${data.amount}`));
+}
+
+function loadWeeklyDuties() {
+    fetch(`http://localhost:8008/nurses/duties/week?startDate=${weeklyDutyStart.value}`)
+    .then(r => r.json())
+    .then(data => {
+        weeklyDutyOut.innerText = JSON.stringify(data, null, 2);
+    });
+}
+
+function loadReport() {
+    const start = prompt("Start date for ranged report? Leave blank for all-time report.");
+    const end = start ? prompt("End date (YYYY-MM-DD)") : "";
+    const url = start && end
+        ? `http://localhost:8008/reports/summary/range?startDate=${start}&endDate=${end}`
+        : "http://localhost:8008/reports/summary";
+
+    fetch(url)
+    .then(r => r.json())
+    .then(data => {
+        report.innerHTML = `
+            <article class="stat-card"><span>Patients Visited</span><strong>${data.totalPatientsVisited ?? "-"}</strong></article>
+            <article class="stat-card"><span>Registered Patients</span><strong>${data.registeredPatients ?? "-"}</strong></article>
+            <article class="stat-card"><span>Appointments</span><strong>${data.totalAppointments ?? "-"}</strong></article>
+            <article class="stat-card"><span>Cabin Bookings</span><strong>${data.totalCabinBookings ?? "-"}</strong></article>
+            <article class="stat-card"><span>Income</span><strong>${data.totalIncome ?? "-"}</strong></article>
+            <article class="stat-card"><span>Salary Outgo</span><strong>${data.totalSalaryOutgo ?? "-"}</strong></article>
+        `;
+    });
+}
+
+loadDoctors();
+loadNurses();
+</script>
+</body>
+</html>

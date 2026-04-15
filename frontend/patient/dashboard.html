@@ -1,4 +1,271 @@
-<h2>Patient Dashboard</h2>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Patient Dashboard</title>
+<link rel="stylesheet" href="patient-dashboard.css">
+</head>
+<body>
+<script>
+const role = localStorage.getItem("role");
+const patientId = localStorage.getItem("userId");
 
-<a href="appointment.html">Book Appointment</a><br><br>
-<a href="cabin.html">Book Cabin</a>
+if (role !== "PATIENT") {
+    alert("Unauthorized");
+    location.href = "/login.html";
+}
+
+function logout() {
+    localStorage.removeItem("role");
+    localStorage.removeItem("userId");
+
+    fetch("http://localhost:8008/auth/logout", {
+        method: "POST",
+        credentials: "include"
+    }).then(() => location.href = "/login.html");
+}
+</script>
+
+<header class="page-header">
+    <div>
+        <p class="eyebrow">Gray Hospital</p>
+        <h1>Patient Dashboard</h1>
+        <p class="subtitle">Check doctor availability, book 1-hour consultation slots, review your appointments, and reserve cabins.</p>
+    </div>
+    <button class="ghost-button" onclick="logout()">Logout</button>
+</header>
+
+<section class="hero-grid">
+    <article class="hero-card">
+        <p class="hero-label">Doctor Booking</p>
+        <h2>09:00 to 17:00</h2>
+        <p>Appointments are booked in fixed 1-hour consultation slots.</p>
+    </article>
+    <article class="hero-card">
+        <p class="hero-label">Appointment Fee</p>
+        <h2>Rs. 500</h2>
+        <p>The slot is confirmed only after the booking payment is recorded.</p>
+    </article>
+    <article class="hero-card">
+        <p class="hero-label">Cabin Booking</p>
+        <h2>Daily Rate</h2>
+        <p>Cabin availability and booking amount are calculated for your selected date range.</p>
+    </article>
+</section>
+
+<main class="section-stack">
+    <section class="section-band">
+        <div class="section-head">
+            <div>
+                <p class="eyebrow">Doctors</p>
+                <h2>Doctor Availability</h2>
+            </div>
+        </div>
+        <div class="inline-actions">
+            <input type="date" id="rosterDate">
+            <button class="secondary-button" onclick="loadRoster()">Show Available Doctors</button>
+        </div>
+        <div id="rosterList" class="doctor-grid"></div>
+    </section>
+
+    <section class="section-band">
+        <div class="section-head">
+            <div>
+                <p class="eyebrow">Appointments</p>
+                <h2>Book Appointment</h2>
+            </div>
+        </div>
+        <div class="dashboard-grid">
+            <section class="panel">
+                <div class="panel-header">
+                    <div>
+                        <p class="eyebrow">Selected Slot</p>
+                        <h3>Confirmation</h3>
+                    </div>
+                </div>
+                <div class="selected-slot-card">
+                    <p id="selectedSlotText">No slot selected.</p>
+                </div>
+                <button onclick="bookAppointment()">Confirm Appointment</button>
+            </section>
+
+            <section class="panel panel-wide">
+                <div class="panel-header">
+                    <div>
+                        <p class="eyebrow">Appointments</p>
+                        <h3>My Appointment History</h3>
+                    </div>
+                    <button class="secondary-button" onclick="loadAppointments()">Refresh</button>
+                </div>
+                <div id="appointmentList" class="card-list"></div>
+            </section>
+        </div>
+    </section>
+
+    <section class="section-band">
+        <div class="section-head">
+            <div>
+                <p class="eyebrow">Cabins</p>
+                <h2>Cabin Booking</h2>
+            </div>
+        </div>
+        <div class="inline-actions">
+            <input type="date" id="cabinStart">
+            <input type="date" id="cabinEnd">
+            <button class="secondary-button" onclick="loadAvailableCabins()">Check Cabins</button>
+        </div>
+        <div id="cabinOptions" class="doctor-grid"></div>
+    </section>
+</main>
+
+<script>
+let selectedDoctorId = null;
+let selectedStart = null;
+let selectedEnd = null;
+
+function loadRoster() {
+    const date = rosterDate.value;
+
+    fetch(`http://localhost:8008/appointments/doctors/day?date=${date}`)
+    .then(r => r.json())
+    .then(data => {
+        if (!data.length) {
+            rosterList.innerHTML = "<p class='empty-message'>No doctors scheduled for this day.</p>";
+            return;
+        }
+
+        rosterList.innerHTML = data.map(doctor => `
+            <article class="doctor-card">
+                <div class="doctor-meta">
+                    <p class="doctor-name">${doctor.name}</p>
+                    <p>Qualification: ${doctor.qualification || "Qualification not listed"}</p>
+                    <p>Expertise: ${doctor.expertise || "Expertise not listed"}</p>
+                    <p>Consultation Window: 09:00 - 17:00</p>
+                </div>
+                <button class="secondary-button" onclick="loadSlots(${doctor.doctorId}, '${date}')">Load Free Slots</button>
+                <div id="slots-${doctor.doctorId}" class="slot-grid"></div>
+            </article>
+        `).join("");
+    });
+}
+
+function loadSlots(doctorId, date) {
+    fetch(`http://localhost:8008/appointments/slots?doctorId=${doctorId}&date=${date}&slotMinutes=60`)
+    .then(r => r.json())
+    .then(slots => {
+        if (!slots.length) {
+            document.getElementById(`slots-${doctorId}`).innerHTML = "<p class='empty-message'>No free slots available.</p>";
+            return;
+        }
+
+        document.getElementById(`slots-${doctorId}`).innerHTML = slots.map(slot => `
+            <button class="slot-button" onclick="selectSlot('${doctorId}','${slot.start}','${slot.end}')">
+                ${slot.start.split('T')[1]} - ${slot.end.split('T')[1]}
+            </button>
+        `).join("");
+    });
+}
+
+function selectSlot(docId, start, end) {
+    selectedDoctorId = docId;
+    selectedStart = start;
+    selectedEnd = end;
+
+    selectedSlotText.innerText =
+        `Doctor ID ${docId} | ${start.replace('T', ' ')} to ${end.split('T')[1]} | Booking Fee: Rs. 500`;
+}
+
+function bookAppointment() {
+    if (!selectedDoctorId || !selectedStart) {
+        alert("Select a doctor and a free slot first.");
+        return;
+    }
+
+    fetch(`http://localhost:8008/appointments/book?patientId=${patientId}&doctorId=${selectedDoctorId}&start=${selectedStart}&end=${selectedEnd}`, {
+        method: "POST",
+        credentials: "include"
+    })
+    .then(r => r.json())
+    .then(() => {
+        alert("Appointment booked. Rs. 500 payment recorded.");
+        loadAppointments();
+        loadRoster();
+    })
+    .catch(err => {
+        console.log(err);
+        alert("Booking failed.");
+    });
+}
+
+function loadAppointments() {
+    fetch(`http://localhost:8008/appointments/patient?patientId=${patientId}`)
+    .then(r => r.json())
+    .then(data => {
+        if (!data.length) {
+            appointmentList.innerHTML = "<p class='empty-message'>No appointments found.</p>";
+            return;
+        }
+
+        appointmentList.innerHTML = data.map(a => `
+            <article class="list-card">
+                <strong>Dr. ${a.doctor.name}</strong>
+                <span>${a.slotStart.replace('T', ' ')}</span>
+                <span>Status: ${a.status}</span>
+            </article>
+        `).join("");
+    });
+}
+
+function loadAvailableCabins() {
+    const start = cabinStart.value;
+    const end = cabinEnd.value;
+
+    fetch(`http://localhost:8008/cabins/available?start=${start}&end=${end}`)
+    .then(r => r.json())
+    .then(cabins => {
+        if (!cabins.length) {
+            cabinOptions.innerHTML = "<p class='empty-message'>No cabins available for the selected dates.</p>";
+            return;
+        }
+
+        cabinOptions.innerHTML = cabins.map(cabin => `
+            <article class="doctor-card">
+                <div class="doctor-meta">
+                    <p class="doctor-name">Cabin ${cabin.cabinId}</p>
+                    <p>Status: ${cabin.status || "AVAILABLE"}</p>
+                    <p>Daily Rate: Rs. ${cabin.dailyRate || 3000}</p>
+                </div>
+                <button onclick="bookCabin(${cabin.cabinId})">Book Cabin</button>
+            </article>
+        `).join("");
+    });
+}
+
+function bookCabin(cabinId) {
+    const start = cabinStart.value;
+    const end = cabinEnd.value;
+
+    fetch(`http://localhost:8008/cabins/amount?cabinId=${cabinId}&start=${start}&end=${end}`)
+    .then(r => r.text())
+    .then(amount => {
+        return fetch(`http://localhost:8008/cabins/book?patientId=${patientId}&cabinId=${cabinId}&start=${start}&end=${end}`, {
+            method: "POST",
+            credentials: "include"
+        })
+        .then(r => r.json())
+        .then(() => {
+            alert(`Cabin booked. Payment recorded: Rs. ${amount}`);
+            loadAvailableCabins();
+        });
+    })
+    .catch(err => {
+        console.log(err);
+        alert("Cabin booking failed.");
+    });
+}
+
+loadAppointments();
+</script>
+</body>
+</html>

@@ -1,31 +1,26 @@
-<h2>Register Patient</h2>
+<h2>Register</h2>
 
 <input id="name" placeholder="Name"><br>
-<input id="age" placeholder="Age"><br>
 <input id="email" placeholder="Email"><br>
-<input id="phone" placeholder="Phone"><br>
+<input id="password" placeholder="Password"><br>
+<input id="age" placeholder="Age"><br>
 
 <button onclick="register()">Register</button>
 
 <script>
-
 function register(){
 
 fetch("http://localhost:8008/patients/register",{
 method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({
-name:document.getElementById("name").value,
-age:document.getElementById("age").value,
-email:document.getElementById("email").value,
-phone:document.getElementById("phone").value
+headers:{ "Content-Type":"application/json" },
+body: JSON.stringify({
+name: name.value,
+email: email.value,
+password: password.value,
+age: age.value
 })
 })
-.then(r=>r.json())
-.then(data=>{
-alert("Patient Registered: "+data.patientId)
-})
+.then(()=>alert("Registered!"))
 
 }
-
 </script>
