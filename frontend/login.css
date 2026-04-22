@@ -68,6 +68,19 @@ button:hover {
     background: #2980b9;
 }
 
+.register-link {
+    display: block;
+    margin-top: 16px;
+    color: #3498db;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.register-link:hover {
+    text-decoration: underline;
+}
+
 /* Optional small text */
 p {
     font-size: 14px;

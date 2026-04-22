@@ -1,26 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Patient Register</title>
+</head>
+<body>
+
 <h2>Register</h2>
 
 <input id="name" placeholder="Name"><br>
-<input id="email" placeholder="Email"><br>
-<input id="password" placeholder="Password"><br>
-<input id="age" placeholder="Age"><br>
+<input id="email" type="email" placeholder="Email"><br>
+<input id="password" type="password" placeholder="Password"><br>
+<input id="age" type="number" placeholder="Age"><br>
+<input id="phone" placeholder="Phone"><br>
+<input id="address" placeholder="Address"><br>
 
 <button onclick="register()">Register</button>
 
 <script>
-function register(){
+async function register(){
+    const patient = {
+        name: document.getElementById("name").value.trim(),
+        email: document.getElementById("email").value.trim(),
+        password: document.getElementById("password").value,
+        age: Number(document.getElementById("age").value),
+        phone: document.getElementById("phone").value.trim(),
+        address: document.getElementById("address").value.trim()
+    };
 
-fetch("http://localhost:8008/patients/register",{
-method:"POST",
-headers:{ "Content-Type":"application/json" },
-body: JSON.stringify({
-name: name.value,
-email: email.value,
-password: password.value,
-age: age.value
-})
-})
-.then(()=>alert("Registered!"))
+    try {
+        const response = await fetch("http://localhost:8008/patients/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(patient)
+        });
 
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({}));
+            throw new Error(error.message || "Registration failed");
+        }
+
+        alert("Registered!");
+        location.href = "../login.html";
+    } catch (error) {
+        alert(error.message);
+    }
 }
 </script>
+
+</body>
+</html>

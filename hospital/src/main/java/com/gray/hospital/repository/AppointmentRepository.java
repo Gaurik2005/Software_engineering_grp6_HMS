@@ -23,6 +23,8 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             LocalDateTime end
     );
 
+    List<Appointment> findByDoctorDoctorIdOrderBySlotStartDesc(Long doctorId);
+
     long countBySlotStartBetween(LocalDateTime start, LocalDateTime end);
 
     @Query("""

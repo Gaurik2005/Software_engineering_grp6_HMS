@@ -285,6 +285,12 @@ function logout() {
                     <input id="payYear" placeholder="Year">
                 </div>
                 <button onclick="generateDoctorPayslip()">Generate Doctor Payslip</button>
+                <div class="inline-actions compact-actions">
+                    <button class="secondary-button" onclick="openDoctorPayslip()">Open</button>
+                    <button class="secondary-button" onclick="downloadDoctorPayslip()">Download</button>
+                    <button class="secondary-button" onclick="emailDoctorPayslip()">Email</button>
+                </div>
+                <div id="doctorPayslipResult" class="result-box"></div>
             </section>
 
             <section class="panel">
@@ -300,6 +306,12 @@ function logout() {
                     <input id="payYearNurse" placeholder="Year">
                 </div>
                 <button onclick="generateNursePayslip()">Generate Nurse Payslip</button>
+                <div class="inline-actions compact-actions">
+                    <button class="secondary-button" onclick="openNursePayslip()">Open</button>
+                    <button class="secondary-button" onclick="downloadNursePayslip()">Download</button>
+                    <button class="secondary-button" onclick="emailNursePayslip()">Email</button>
+                </div>
+                <div id="nursePayslipResult" class="result-box"></div>
             </section>
 
             <section class="panel panel-wide">
@@ -578,7 +590,11 @@ function generateDoctorPayslip() {
     })
     .then(r => r.json())
     .then(data => {
-        alert(`Doctor payslip generated: ${data.amount}\nSaved at: ${data.documentPath}`);
+        doctorPayslipResult.innerHTML = `
+            <p>Payslip generated for ${data.staffName}.</p>
+            <p>Amount: Rs. ${data.amount}</p>
+            <p>Saved at: ${data.documentPath}</p>
+        `;
         if (data.documentUrl) {
             window.open(`http://localhost:8008${data.documentUrl}`, "_blank");
         }
@@ -591,10 +607,58 @@ function generateNursePayslip() {
     })
     .then(r => r.json())
     .then(data => {
-        alert(`Nurse payslip generated: ${data.amount}\nSaved at: ${data.documentPath}`);
+        nursePayslipResult.innerHTML = `
+            <p>Payslip generated for ${data.staffName}.</p>
+            <p>Amount: Rs. ${data.amount}</p>
+            <p>Saved at: ${data.documentPath}</p>
+        `;
         if (data.documentUrl) {
             window.open(`http://localhost:8008${data.documentUrl}`, "_blank");
         }
+    });
+}
+
+function openDoctorPayslip() {
+    window.open(`http://localhost:8008/payroll/doctor/document?doctorId=${payDoctorId.value}&month=${payMonth.value}&year=${payYear.value}`, "_blank");
+}
+
+function downloadDoctorPayslip() {
+    window.open(`http://localhost:8008/payroll/doctor/download?doctorId=${payDoctorId.value}&month=${payMonth.value}&year=${payYear.value}`, "_blank");
+}
+
+function emailDoctorPayslip() {
+    fetch(`http://localhost:8008/payroll/doctor/email?doctorId=${payDoctorId.value}&month=${payMonth.value}&year=${payYear.value}`, {
+        method: "POST"
+    })
+    .then(r => r.json())
+    .then(data => {
+        doctorPayslipResult.innerHTML = `
+            <p>${data.message}</p>
+            <p>Recipient: ${data.recipientEmail}</p>
+            <p>Artifact: ${data.artifactPath}</p>
+        `;
+    });
+}
+
+function openNursePayslip() {
+    window.open(`http://localhost:8008/payroll/nurse/document?nurseId=${payNurseId.value}&month=${payMonthNurse.value}&year=${payYearNurse.value}`, "_blank");
+}
+
+function downloadNursePayslip() {
+    window.open(`http://localhost:8008/payroll/nurse/download?nurseId=${payNurseId.value}&month=${payMonthNurse.value}&year=${payYearNurse.value}`, "_blank");
+}
+
+function emailNursePayslip() {
+    fetch(`http://localhost:8008/payroll/nurse/email?nurseId=${payNurseId.value}&month=${payMonthNurse.value}&year=${payYearNurse.value}`, {
+        method: "POST"
+    })
+    .then(r => r.json())
+    .then(data => {
+        nursePayslipResult.innerHTML = `
+            <p>${data.message}</p>
+            <p>Recipient: ${data.recipientEmail}</p>
+            <p>Artifact: ${data.artifactPath}</p>
+        `;
     });
 }
 

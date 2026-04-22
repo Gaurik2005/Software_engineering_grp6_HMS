@@ -2,7 +2,10 @@ package com.gray.hospital.controller;
 
 import com.gray.hospital.entity.Patient;
 import com.gray.hospital.service.PatientService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/patients")
@@ -15,8 +18,12 @@ public class PatientController {
     }
 
     @PostMapping("/register")
-    public Patient register(@RequestBody Patient patient){
-        return patientService.registerPatient(patient);
+    public ResponseEntity<?> register(@RequestBody Patient patient){
+        try {
+            return ResponseEntity.ok(patientService.registerPatient(patient));
+        } catch (RuntimeException exception) {
+            return ResponseEntity.badRequest().body(Map.of("message", exception.getMessage()));
+        }
     }
 
 }

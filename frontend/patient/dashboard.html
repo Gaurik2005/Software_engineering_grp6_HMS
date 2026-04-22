@@ -106,6 +106,17 @@ function logout() {
     <section class="section-band">
         <div class="section-head">
             <div>
+                <p class="eyebrow">Medical History</p>
+                <h2>Diagnosis and Prescriptions</h2>
+            </div>
+            <button class="secondary-button" onclick="loadMedicalHistory()">Refresh</button>
+        </div>
+        <div id="medicalHistoryList" class="card-list"></div>
+    </section>
+
+    <section class="section-band">
+        <div class="section-head">
+            <div>
                 <p class="eyebrow">Cabins</p>
                 <h2>Cabin Booking</h2>
             </div>
@@ -217,6 +228,45 @@ function loadAppointments() {
     });
 }
 
+function loadMedicalHistory() {
+    fetch(`http://localhost:8008/appointments/patient/${patientId}/medical-history`, {
+        credentials: "include"
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (!data.length) {
+            medicalHistoryList.innerHTML = "<p class='empty-message'>No diagnosis or prescription history found yet.</p>";
+            return;
+        }
+
+        medicalHistoryList.innerHTML = data.map(record => `
+            <article class="history-card">
+                <div class="history-card-head">
+                    <div>
+                        <strong>Dr. ${record.doctorName}</strong>
+                        <p>${record.doctorExpertise || "General Consultation"}</p>
+                    </div>
+                    <span class="history-chip">${record.status || "COMPLETED"}</span>
+                </div>
+                <div class="history-meta">
+                    <span>Appointment ID ${record.appointmentId}</span>
+                    <span>${record.slotStart ? record.slotStart.replace("T", " ") : "No visit time recorded"}</span>
+                    <span>${record.updatedAt ? `Updated ${record.updatedAt.replace("T", " ")}` : ""}</span>
+                </div>
+                <div class="history-body">
+                    <p><strong>Diagnosis:</strong> ${record.diagnosis || "Not recorded"}</p>
+                    <p><strong>Prescription:</strong> ${record.prescription || "Not recorded"}</p>
+                    <p><strong>Notes:</strong> ${record.notes || "No additional notes"}</p>
+                </div>
+            </article>
+        `).join("");
+    })
+    .catch(error => {
+        console.log(error);
+        medicalHistoryList.innerHTML = "<p class='empty-message'>Unable to load medical history.</p>";
+    });
+}
+
 function loadAvailableCabins() {
     const start = cabinStart.value;
     const end = cabinEnd.value;
@@ -266,6 +316,7 @@ function bookCabin(cabinId) {
 }
 
 loadAppointments();
+loadMedicalHistory();
 </script>
 </body>
 </html>

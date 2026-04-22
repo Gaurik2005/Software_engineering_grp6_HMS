@@ -3,6 +3,7 @@ package com.gray.hospital.service;
 import com.gray.hospital.entity.*;
 import com.gray.hospital.repository.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -11,6 +12,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @Service
 public class AppointmentService {
@@ -163,7 +166,7 @@ public class AppointmentService {
                                            String prescription,
                                            String notes){
         Appointment appointment = appointmentRepository.findById(appointmentId)
-                .orElseThrow(() -> new RuntimeException("Appointment not found"));
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Appointment not found"));
 
         MedicalRecord medicalRecord = medicalRecordRepository.findByAppointmentAppointmentId(appointmentId)
                 .orElseGet(MedicalRecord::new);
@@ -187,7 +190,23 @@ public class AppointmentService {
 
     public MedicalRecord getMedicalRecord(Long appointmentId){
         return medicalRecordRepository.findByAppointmentAppointmentId(appointmentId)
-                .orElseThrow(() -> new RuntimeException("Medical record not found"));
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Medical record not found"));
+    }
+
+    public List<MedicalRecord> getMedicalRecordsForDoctor(Long doctorId) {
+        return medicalRecordRepository.findByAppointmentDoctorDoctorIdOrderByUpdatedAtDesc(doctorId);
+    }
+
+    public List<MedicalRecord> getMedicalRecordsForPatient(Long patientId) {
+        return medicalRecordRepository.findByAppointmentPatientPatientIdOrderByUpdatedAtDesc(patientId);
+    }
+
+    public List<Appointment> getAppointmentsForDoctor(Long doctorId) {
+        return appointmentRepository.findByDoctorDoctorIdOrderBySlotStartDesc(doctorId);
+    }
+
+    public boolean medicalRecordExists(Long appointmentId) {
+        return medicalRecordRepository.existsByAppointmentAppointmentId(appointmentId);
     }
 
     private boolean isSlotFree(List<Appointment> appointments,

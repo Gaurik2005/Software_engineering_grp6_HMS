@@ -1,3 +1,13 @@
+CREATE TABLE IF NOT EXISTS patients (
+    patient_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(120),
+    age INT,
+    address VARCHAR(255),
+    email VARCHAR(120) NOT NULL UNIQUE,
+    phone VARCHAR(30),
+    password VARCHAR(120) NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS payments (
     payment_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     patient_id BIGINT NOT NULL,

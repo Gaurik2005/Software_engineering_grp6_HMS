@@ -243,6 +243,14 @@ button:hover {
     margin-bottom: 16px;
 }
 
+.compact-actions {
+    flex-wrap: wrap;
+}
+
+.compact-actions button {
+    flex: 1 1 120px;
+}
+
 .inline-actions input {
     max-width: 220px;
 }

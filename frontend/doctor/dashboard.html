@@ -105,6 +105,7 @@ function logout() {
                 </div>
                 <div class="form-grid one-col">
                     <input id="appointmentId" placeholder="Appointment ID">
+                    <p class="helper-text">Use one of your appointments below to avoid invalid appointment IDs.</p>
                     <textarea id="diagnosis" placeholder="Diagnosis"></textarea>
                     <textarea id="prescription" placeholder="Prescription"></textarea>
                     <textarea id="notes" placeholder="Notes"></textarea>
@@ -122,10 +123,31 @@ function logout() {
                 <pre id="recordOutput" class="code-output">No medical record submitted yet.</pre>
             </section>
         </div>
+        <section class="panel records-list-panel">
+            <div class="panel-header">
+                <div>
+                    <p class="eyebrow">Appointments</p>
+                    <h3>My Recent Appointments</h3>
+                </div>
+            </div>
+            <div id="doctorAppointmentsList" class="result-box">Loading appointments...</div>
+        </section>
+        <section class="panel records-list-panel">
+            <div class="panel-header">
+                <div>
+                    <p class="eyebrow">Medical Record</p>
+                    <h3>Previously Saved Diagnoses</h3>
+                </div>
+            </div>
+            <div id="savedRecordsList" class="result-box">Loading saved records...</div>
+        </section>
     </section>
 </main>
 
 <script>
+let doctorMedicalRecords = [];
+let doctorAppointments = [];
+
 async function loadWeeklyRoster() {
     if (!weekStart.value) {
         doctorRosterBody.innerHTML = `<tr><td colspan="6" class="empty-cell">Select a week to load your timetable.</td></tr>`;
@@ -236,6 +258,11 @@ function addSixDays(startDate) {
 }
 
 function saveMedicalRecord() {
+    if (!appointmentId.value) {
+        alert("Enter an appointment ID first");
+        return;
+    }
+
     fetch(`http://localhost:8008/appointments/${appointmentId.value}/medical-record`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -246,16 +273,231 @@ function saveMedicalRecord() {
             notes: notes.value
         })
     })
-    .then(r => r.json())
+    .then(async response => {
+        if (!response.ok) {
+            const message = await response.text();
+            throw new Error(message || "Failed to save medical record");
+        }
+        return response.json();
+    })
     .then(data => {
-        recordOutput.innerText = JSON.stringify(data, null, 2);
+        renderMedicalRecord(data);
+        loadDoctorAppointments();
+        loadDoctorMedicalRecords();
         alert("Medical record saved");
     })
     .catch(err => {
-        alert("Failed to save medical record");
+        alert(extractErrorMessage(err, "Failed to save medical record"));
         console.log(err);
     });
 }
+
+function loadMedicalRecord() {
+    if (!appointmentId.value) {
+        alert("Enter an appointment ID first");
+        return;
+    }
+
+    fetch(`http://localhost:8008/appointments/${appointmentId.value}/medical-record`, {
+        credentials: "include"
+    })
+    .then(async response => {
+        if (!response.ok) {
+            throw new Error(await response.text());
+        }
+        return response.json();
+    })
+    .then(data => {
+        diagnosis.value = data.diagnosis || "";
+        prescription.value = data.prescription || "";
+        notes.value = data.notes || "";
+        renderMedicalRecord(data);
+    })
+    .catch(error => {
+        recordOutput.innerText = extractErrorMessage(error, "No saved medical record found for this appointment yet.");
+        console.log(error);
+    });
+}
+
+function renderMedicalRecord(data) {
+    diagnosis.value = data.diagnosis || "";
+    prescription.value = data.prescription || "";
+    notes.value = data.notes || "";
+    appointmentId.value = data.appointmentId || "";
+    recordOutput.innerText = JSON.stringify(data, null, 2);
+}
+
+function renderSavedMedicalRecords(records) {
+    doctorMedicalRecords = records;
+
+    if (!records.length) {
+        savedRecordsList.innerHTML = "<p>No saved medical records found yet.</p>";
+        return;
+    }
+
+    savedRecordsList.innerHTML = records.map(record => `
+        <article class="record-card" data-appointment-id="${record.appointmentId}">
+            <div class="record-card-head">
+                <div>
+                    <strong>Appointment ${record.appointmentId}</strong>
+                    <p>${record.updatedAt ? record.updatedAt.replace("T", " ") : "No timestamp"}</p>
+                </div>
+                <button type="button" class="secondary-button record-open-button">Open</button>
+            </div>
+            <div class="record-card-body">
+                <p><strong>Diagnosis:</strong> ${record.diagnosis || "Not entered"}</p>
+                <p><strong>Prescription:</strong> ${record.prescription || "Not entered"}</p>
+                <p><strong>Notes:</strong> ${record.notes || "Not entered"}</p>
+            </div>
+        </article>
+    `).join("");
+
+    savedRecordsList.querySelectorAll(".record-card").forEach(card => {
+        card.querySelector(".record-open-button").addEventListener("click", () => {
+            const selected = doctorMedicalRecords.find(record =>
+                String(record.appointmentId) === String(card.dataset.appointmentId)
+            );
+
+            if (selected) {
+                selectMedicalRecord(selected);
+            }
+        });
+    });
+}
+
+function selectMedicalRecord(record) {
+    renderMedicalRecord(record);
+}
+
+function renderDoctorAppointments(appointments) {
+    doctorAppointments = appointments;
+
+    if (!appointments.length) {
+        doctorAppointmentsList.innerHTML = "<p>No appointments found for this doctor yet.</p>";
+        return;
+    }
+
+    doctorAppointmentsList.innerHTML = appointments.map(appointment => `
+        <article class="record-card" data-appointment-id="${appointment.appointmentId}">
+            <div class="record-card-head">
+                <div>
+                    <strong>Appointment ${appointment.appointmentId}</strong>
+                    <p>${appointment.slotStart ? appointment.slotStart.replace("T", " ") : "No time"}${appointment.slotEnd ? ` to ${appointment.slotEnd.replace("T", " ")}` : ""}</p>
+                </div>
+                <button type="button" class="secondary-button appointment-open-button">Use This</button>
+            </div>
+            <div class="record-card-body">
+                <p><strong>Patient:</strong> ${appointment.patientName || "Unknown Patient"}${appointment.patientId ? ` (ID ${appointment.patientId})` : ""}</p>
+                <p><strong>Status:</strong> ${appointment.status || "Unknown"}</p>
+                <p><strong>Medical Record:</strong> ${appointment.hasMedicalRecord ? "Already saved" : "Not saved yet"}</p>
+            </div>
+        </article>
+    `).join("");
+
+    doctorAppointmentsList.querySelectorAll(".record-card").forEach(card => {
+        card.querySelector(".appointment-open-button").addEventListener("click", () => {
+            const selected = doctorAppointments.find(appointment =>
+                String(appointment.appointmentId) === String(card.dataset.appointmentId)
+            );
+
+            if (!selected) {
+                return;
+            }
+
+            appointmentId.value = selected.appointmentId;
+
+            if (selected.hasMedicalRecord) {
+                loadMedicalRecord();
+                return;
+            }
+
+            diagnosis.value = "";
+            prescription.value = "";
+            notes.value = "";
+            recordOutput.innerText = `Ready to create medical record for appointment ${selected.appointmentId}.`;
+        });
+    });
+}
+
+async function loadDoctorAppointments() {
+    await ensureDoctorId();
+
+    if (!doctorId) {
+        doctorAppointmentsList.innerHTML = "<p>Doctor session not found. Log in again.</p>";
+        return;
+    }
+
+    try {
+        const response = await fetch(`http://localhost:8008/appointments/doctor/${doctorId}`, {
+            credentials: "include"
+        });
+
+        if (!response.ok) {
+            throw new Error(await response.text());
+        }
+
+        const appointments = await response.json();
+        renderDoctorAppointments(appointments);
+    } catch (error) {
+        doctorAppointmentsList.innerHTML = `<p>${extractErrorMessage(error, "Unable to load appointments.")}</p>`;
+        console.log(error);
+    }
+}
+
+function extractErrorMessage(error, fallbackMessage) {
+    const message = error && error.message ? error.message : "";
+    if (!message) {
+        return fallbackMessage;
+    }
+
+    try {
+        const parsed = JSON.parse(message);
+        return parsed.message || parsed.error || fallbackMessage;
+    } catch (_) {
+        return message;
+    }
+}
+
+async function loadDoctorMedicalRecords() {
+    await ensureDoctorId();
+
+    if (!doctorId) {
+        savedRecordsList.innerHTML = "<p>Doctor session not found. Log in again.</p>";
+        return;
+    }
+
+    try {
+        const response = await fetch(`http://localhost:8008/appointments/doctor/${doctorId}/medical-records`, {
+            credentials: "include"
+        });
+
+        if (!response.ok) {
+            throw new Error(await response.text());
+        }
+
+        const records = await response.json();
+        renderSavedMedicalRecords(records);
+
+        if (records.length) {
+            renderMedicalRecord(records[0]);
+        }
+    } catch (error) {
+        savedRecordsList.innerHTML = "<p>Unable to load saved medical records.</p>";
+        console.log(error);
+    }
+}
+
+appointmentId.addEventListener("change", () => {
+    if (appointmentId.value.trim()) {
+        loadMedicalRecord();
+    }
+});
+
+document.addEventListener("DOMContentLoaded", async () => {
+    await ensureDoctorId();
+    await loadDoctorAppointments();
+    await loadDoctorMedicalRecords();
+});
 </script>
 </body>
 </html>
