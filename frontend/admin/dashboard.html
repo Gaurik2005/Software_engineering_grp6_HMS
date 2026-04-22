@@ -577,7 +577,12 @@ function generateDoctorPayslip() {
         method: "POST"
     })
     .then(r => r.json())
-    .then(data => alert(`Doctor payslip generated: ${data.amount}`));
+    .then(data => {
+        alert(`Doctor payslip generated: ${data.amount}\nSaved at: ${data.documentPath}`);
+        if (data.documentUrl) {
+            window.open(`http://localhost:8008${data.documentUrl}`, "_blank");
+        }
+    });
 }
 
 function generateNursePayslip() {
@@ -585,7 +590,12 @@ function generateNursePayslip() {
         method: "POST"
     })
     .then(r => r.json())
-    .then(data => alert(`Nurse payslip generated: ${data.amount}`));
+    .then(data => {
+        alert(`Nurse payslip generated: ${data.amount}\nSaved at: ${data.documentPath}`);
+        if (data.documentUrl) {
+            window.open(`http://localhost:8008${data.documentUrl}`, "_blank");
+        }
+    });
 }
 
 function loadWeeklyDuties() {

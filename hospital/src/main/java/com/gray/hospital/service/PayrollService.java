@@ -1,11 +1,13 @@
 package com.gray.hospital.service;
 
+import com.gray.hospital.controller.dto.PayslipGenerationResponse;
 import com.gray.hospital.entity.*;
 import com.gray.hospital.repository.*;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.nio.file.Path;
 
 @Service
 public class PayrollService {
@@ -16,6 +18,7 @@ public class PayrollService {
     private final PayslipRepository payslipRepository;
     private final NurseRepository nurseRepository;
     private final NursePayslipRepository nursePayslipRepository;
+    private final PayslipDocumentService payslipDocumentService;
 
     public PayrollService(
             AppointmentRepository appointmentRepository,
@@ -23,7 +26,8 @@ public class PayrollService {
             DoctorRepository doctorRepository,
             PayslipRepository payslipRepository,
             NurseRepository nurseRepository,
-            NursePayslipRepository nursePayslipRepository){
+            NursePayslipRepository nursePayslipRepository,
+            PayslipDocumentService payslipDocumentService){
 
         this.appointmentRepository = appointmentRepository;
         this.regularDoctorRepository = regularDoctorRepository;
@@ -31,17 +35,13 @@ public class PayrollService {
         this.payslipRepository = payslipRepository;
         this.nurseRepository = nurseRepository;
         this.nursePayslipRepository = nursePayslipRepository;
+        this.payslipDocumentService = payslipDocumentService;
     }
 
-    public Payslip generateDoctorPayslip(
+    public PayslipGenerationResponse generateDoctorPayslip(
             Long doctorId,
             int month,
             int year){
-        payslipRepository.findByDoctorDoctorIdAndMonthAndYear(doctorId, month, year)
-                .ifPresent(existing -> {
-                    throw new RuntimeException("Doctor payslip already generated for this month");
-                });
-
         Doctor doctor = doctorRepository.findById(doctorId)
                 .orElseThrow();
 
@@ -74,22 +74,44 @@ public class PayrollService {
             salary = BigDecimal.valueOf(patientsSeen * 200);
         }
 
-        Payslip payslip = new Payslip();
+        Payslip payslip = payslipRepository.findByDoctorDoctorIdAndMonthAndYear(doctorId, month, year)
+                .orElseGet(Payslip::new);
 
         payslip.setDoctor(doctor);
         payslip.setMonth(month);
         payslip.setYear(year);
         payslip.setAmount(salary);
 
-        return payslipRepository.save(payslip);
+        Payslip savedPayslip = payslipRepository.save(payslip);
+        BigDecimal basicPay = "REGULAR".equals(doctor.getDoctorType())
+                ? regularDoctorRepository.findById(doctorId).orElseThrow().getBasicPay()
+                : BigDecimal.ZERO;
+        BigDecimal variablePay = salary.subtract(basicPay);
+        Path documentPath = payslipDocumentService.generateDoctorPayslip(
+                savedPayslip.getPayslipId(),
+                doctor,
+                month,
+                year,
+                basicPay,
+                patientsSeen,
+                variablePay,
+                salary
+        );
+
+        return new PayslipGenerationResponse(
+                savedPayslip.getPayslipId(),
+                "DOCTOR",
+                doctor.getDoctorId(),
+                doctor.getName(),
+                month,
+                year,
+                salary,
+                documentPath.toString(),
+                "/payroll/doctor/document?doctorId=" + doctorId + "&month=" + month + "&year=" + year
+        );
     }
 
-    public NursePayslip generateNursePayslip(Long nurseId, int month, int year){
-        nursePayslipRepository.findByNurseNurseIdAndMonthAndYear(nurseId, month, year)
-                .ifPresent(existing -> {
-                    throw new RuntimeException("Nurse payslip already generated for this month");
-                });
-
+    public PayslipGenerationResponse generateNursePayslip(Long nurseId, int month, int year){
         Nurse nurse = nurseRepository.findById(nurseId)
                 .orElseThrow(() -> new RuntimeException("Nurse not found"));
 
@@ -97,13 +119,33 @@ public class PayrollService {
             throw new RuntimeException("Nurse salary is not set");
         }
 
-        NursePayslip nursePayslip = new NursePayslip();
+        NursePayslip nursePayslip = nursePayslipRepository.findByNurseNurseIdAndMonthAndYear(nurseId, month, year)
+                .orElseGet(NursePayslip::new);
         nursePayslip.setNurse(nurse);
         nursePayslip.setMonth(month);
         nursePayslip.setYear(year);
         nursePayslip.setAmount(nurse.getSalary());
         nursePayslip.setGeneratedAt(LocalDateTime.now());
 
-        return nursePayslipRepository.save(nursePayslip);
+        NursePayslip savedPayslip = nursePayslipRepository.save(nursePayslip);
+        Path documentPath = payslipDocumentService.generateNursePayslip(
+                savedPayslip.getNursePayslipId(),
+                nurse,
+                month,
+                year,
+                nurse.getSalary()
+        );
+
+        return new PayslipGenerationResponse(
+                savedPayslip.getNursePayslipId(),
+                "NURSE",
+                nurse.getNurseId(),
+                nurse.getName(),
+                month,
+                year,
+                nurse.getSalary(),
+                documentPath.toString(),
+                "/payroll/nurse/document?nurseId=" + nurseId + "&month=" + month + "&year=" + year
+        );
     }
 }

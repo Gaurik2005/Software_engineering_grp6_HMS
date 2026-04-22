@@ -104,14 +104,36 @@
                             <strong>Nurses</strong>
                             <button class="secondary-button small-button" onclick="loadNurses()">Refresh</button>
                         </div>
-                        <div id="nurseList" class="card-list"></div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Role</th>
+                                    <th>Assigned Doctor</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="nurseTableBody"></tbody>
+                        </table>
                     </div>
                     <div>
                         <div class="list-head">
                             <strong>Doctors</strong>
                             <button class="secondary-button small-button" onclick="loadDoctors()">Refresh</button>
                         </div>
-                        <div id="doctorList" class="card-list"></div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Type</th>
+                                    <th>Expertise</th>
+                                    <th>Select</th>
+                                </tr>
+                            </thead>
+                        <tbody id="doctorTableBody"></tbody>
+                    </table>
                     </div>
                 </div>
             </section>
@@ -166,6 +188,10 @@ async function ensureSession() {
     return role === "NURSE" || role === "HEAD_NURSE";
 }
 
+function prefillAssign(nurseId) {
+    assignNurseId.value = nurseId;
+}
+
 function setWeekDefault() {
     const now = new Date();
     const weekday = now.getDay();
@@ -173,6 +199,11 @@ function setWeekDefault() {
     now.setDate(now.getDate() + mondayOffset);
     weekStart.value = now.toISOString().split("T")[0];
 }
+
+function selectDoctor(doctorId) {
+    assignDoctorId.value = doctorId;
+}
+
 
 async function loadProfile() {
     const response = await fetch(`${API_BASE}/nurses/${nurseId}/profile`, {
@@ -242,36 +273,46 @@ async function assignDoctor() {
         assignResult.innerHTML = `<p class="error-text">Assignment failed.</p>`;
     }
 }
-
 async function loadNurses() {
     const response = await fetch(`${API_BASE}/nurses/all-view`, {
         credentials: "include"
     });
+
     const data = await response.json();
 
-    nurseList.innerHTML = data.map(nurse => `
-        <article class="list-card">
-            <strong>${nurse.name}</strong>
-            <span>ID ${nurse.nurseId}</span>
-            <span>${nurse.role === "HEAD" ? "HEAD_NURSE" : "NURSE"}</span>
-            <span>Assigned Doctor: ${nurse.doctorName || "Not Assigned"}</span>
-        </article>
+    nurseTableBody.innerHTML = data.map(nurse => `
+        <tr>
+            <td>${nurse.nurseId}</td>
+            <td>${nurse.name}</td>
+            <td>${nurse.role}</td>
+            <td>${nurse.doctorName || "Not Assigned"}</td>
+            <td>
+                <button onclick="prefillAssign(${nurse.nurseId})">
+                    Assign
+                </button>
+            </td>
+        </tr>
     `).join("");
 }
-
 async function loadDoctors() {
     const response = await fetch(`${API_BASE}/doctors/all`, {
         credentials: "include"
     });
+
     const data = await response.json();
 
-    doctorList.innerHTML = data.map(doctor => `
-        <article class="list-card">
-            <strong>${doctor.name}</strong>
-            <span>ID ${doctor.doctorId}</span>
-            <span>${doctor.doctorType}</span>
-            <span>${doctor.expertise || "No expertise listed"}</span>
-        </article>
+    doctorTableBody.innerHTML = data.map(doc => `
+        <tr>
+            <td>${doc.doctorId}</td>
+            <td>${doc.name}</td>
+            <td>${doc.doctorType}</td>
+            <td>${doc.expertise || "-"}</td>
+            <td>
+                <button onclick="selectDoctor(${doc.doctorId})">
+                    Select
+                </button>
+            </td>
+        </tr>
     `).join("");
 }
 
@@ -301,3 +342,17 @@ init().catch(() => {
 </script>
 </body>
 </html>
+
+
+function getMonday(dateString) {
+    const date = new Date(dateString);
+
+    const day = date.getDay(); 
+    // Sunday = 0, Monday = 1 ... Saturday = 6
+
+    const diff = day === 0 ? -6 : 1 - day;
+
+    date.setDate(date.getDate() + diff);
+
+    return date.toISOString().split("T")[0];
+}

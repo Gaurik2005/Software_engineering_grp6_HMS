@@ -50,7 +50,7 @@ public class NurseController {
         nurseRepository.deleteById(nurseId);
     }
 
-    // ✅ ASSIGN NURSE TO DOCTOR (MAIN FEATURE)
+    //  ASSIGN NURSE TO DOCTOR (MAIN FEATURE)
     @PutMapping("/assign")
     public Nurse assignNurse(
             @RequestParam Long nurseId,
@@ -69,12 +69,19 @@ public class NurseController {
         Doctor doctor = doctorRepository.findById(doctorId)
                 .orElseThrow(() -> new RuntimeException("Doctor not found"));
 
+        //  STEP 1: Remove existing nurse assigned to this doctor
+        nurseRepository.findByDoctorDoctorId(doctorId)
+                .ifPresent(existingNurse -> {
+                    existingNurse.setDoctor(null);
+                    nurseRepository.save(existingNurse);
+                });
+
+        // 🔥 STEP 2: Assign new nurse
         nurse.setDoctor(doctor);
 
         return nurseRepository.save(nurse);
     }
-
-    // ✅ VIEW ALL NURSES
+        //  VIEW ALL NURSES
     @GetMapping("/all")
     public List<Nurse> all(){
         return nurseRepository.findAll();

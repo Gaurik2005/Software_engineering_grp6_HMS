@@ -89,12 +89,12 @@ public class AuthController {
 
             if(n.getPassword().equals(password)){
 
-                if("HEAD".equals(n.getRole())){
+                if("HEAD_NURSE".equals(n.getRole())){
                     request.getSession().setAttribute("role","HEAD_NURSE");
                 } else {
                     request.getSession().setAttribute("role","NURSE");
                 }
-
+                
                 request.getSession().setAttribute("userId", n.getNurseId());
 
                 res.put("role", request.getSession().getAttribute("role"));
